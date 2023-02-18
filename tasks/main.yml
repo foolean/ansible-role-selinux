@@ -1,0 +1,75 @@
+# Copyright (c) 2023, Bennett Samowich <bennett@foolean.org>
+# All rights reserved
+# SPDX short identifier: BSD-3-Clause
+---
+
+# Gather facts if we don't already have them.  This step
+# is required in order to be able to specify tags at runtime
+- name: Gather facts
+  become: true
+  ansible.builtin.setup:
+  tags: ['always']
+  when: ansible_facts == {}
+
+
+- name: Ensure selinux is installed (CIS)
+  become: true
+  ansible.builtin.package:
+    name: 'libselinux'
+    state: present
+  when:
+    - ansible_os_family == 'RedHat'
+
+
+- name: Ensure setroubleshoot is not installed (CIS)
+  become: true
+  ansible.builtin.package:
+    name: 'setroubleshoot'
+    state: absent
+  when:
+    - ansible_os_family == 'RedHat'
+
+- name: Ensure MCS Translation service (mcstrans) is not installed (CIS)
+  become: true
+  ansible.builtin.package:
+    name: 'mcstrans'
+    state: absent
+  when:
+    - ansible_os_family == 'RedHat'
+
+- name: Ensure selinux policy utils are installed
+  become: true
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - 'policycoreutils'
+    - 'policycoreutils-python-utils'
+    - 'checkpolicy'
+  when:
+    - ansible_os_family == 'RedHat'
+
+
+# Set the selinux state and policy
+- name: Set selinux policy and state (CIS)
+  become: true
+  ansible.posix.selinux:
+    policy: "{{ selinux_policy }}"
+    state: "{{ selinux_state }}"
+  when:
+    - selinux_state != "disabled"
+    - ansible_os_family == 'RedHat'
+
+- name: Disable selinux
+  become: true
+  ansible.posix.selinux:
+    state: "{{ selinux_state }}"
+  when:
+    - selinux_state == "disabled"
+    - ansible_os_family == 'RedHat'
+
+
+# Flush any handlers that we might have called
+- name: Flush handlers
+  ansible.builtin.meta:
+    flush_handlers
