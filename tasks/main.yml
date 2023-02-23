@@ -62,6 +62,38 @@
         - selinux_state == "disabled"
         - ansible_os_family == 'RedHat'
 
+    - name: CIS | Ensure SELinux is not disabled in bootloader configuration (check selinux)
+      become: true
+      ansible.builtin.command:
+        cmd: "grep -P 'GRUB_CMDLINE_LINUX=.* (selinux=0)' /etc/default/grub"
+      check_mode: false
+      changed_when: selinux_kernel_args.rc == 0
+      failed_when: selinux_kernel_args.rc == -1
+      register: selinux_kernel_args
+
+    - name: CIS | Ensure SELinux is not disabled in bootloader configuration (remove selinux)
+      become: true
+      ansible.builtin.command:
+        cmd: "grubby --update-kernel ALL --remove-args 'selinux=0'"
+      when:
+        - selinux_kernel_args.rc == 0
+
+    - name: CIS | Ensure SELinux is not disabled in bootloader configuration (check enforcing)
+      become: true
+      ansible.builtin.command:
+        cmd: "grep -P 'GRUB_CMDLINE_LINUX=.* (enforcing=0)' /etc/default/grub"
+      check_mode: false
+      changed_when: selinux_kernel_args.rc == 0
+      failed_when: selinux_kernel_args.rc == -1
+      register: selinux_kernel_args
+
+    - name: CIS | Ensure SELinux is not disabled in bootloader configuration (remove enforcing)
+      become: true
+      ansible.builtin.command:
+        cmd: "grubby --update-kernel ALL --remove-args 'enforcing=0'"
+      when:
+        - selinux_kernel_args.rc == 0
+
   # Tags to be applied to this role (block)
   tags:
     - 'role_foolean_selinux'
