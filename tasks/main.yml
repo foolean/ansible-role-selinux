@@ -94,6 +94,9 @@
       when:
         - selinux_kernel_args.rc == 0
 
+  when:
+    - ansible_os_family == 'RedHat'
+
   # Tags to be applied to this role (block)
   tags:
     - 'role_foolean_selinux'
